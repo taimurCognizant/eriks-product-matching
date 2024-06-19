@@ -40,7 +40,7 @@ function App() {
               <div className="flex flex-column h-12rem">
                 <div className="border-2 border-dashed surface-border border-round surface-ground flex-auto flex justify-content-center align-items-center font-medium">
                   <CSVReader
-                    accept="text/csv, .csv, application/vnd.ms-excel,.xlsx"
+                    accept="text/csv, .csv, application/vnd.ms-excel"
                     onUploadAccepted={(results) => {
                       console.log("parse CSV to JSON", results);
 
