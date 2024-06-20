@@ -10,6 +10,7 @@ import { Stepper } from "primereact/stepper";
 import { StepperPanel } from "primereact/stepperpanel";
 import { TabView, TabPanel } from "primereact/tabview";
 import { Dropdown } from "primereact/dropdown";
+import mockData from "./data";
 function App() {
   const { CSVReader } = useCSVReader();
   const stepperRef = useRef(null);
@@ -27,7 +28,7 @@ function App() {
   const [matchedColumns, setMatchedColumns] = useState([]);
 
   const API_URL =
-    "https://la-er-ed-dev-team4.azurewebsites.net:443/api/DataMatch/triggers/When_a_HTTP_request_is_received/invoke?api-version=2022-05-01&sp=%2Ftriggers%2FWhen_a_HTTP_request_is_received%2Frun&sv=1.0&sig=z1Wnimc6hwJcn4ipnDJGTxsaltt_Z6K7DxrtKpXmAWQ";
+    "https://la-er-ed-dev-team4.azurewebsites.net:443/api/DataMatch/triggers/Receive_Request/invoke?api-version=2022-05-01&sp=%2Ftriggers%2FReceive_Request%2Frun&sv=1.0&sig=W-O7AAz-99jFHrlC1hO2_Tj1oAiQjzU3Jv_4cRutz0o";
   const catalogList = [
     { name: "Global", code: "G" },
     { name: "Netherlands", code: "NL" },
@@ -35,58 +36,23 @@ function App() {
   const [selectedCatalog, setSelectedCatalog] = useState();
 
   async function postData(url = "", data = {}) {
+    console.log("data for postdata", data);
     // Default options are marked with *
     const response = await fetch(url, {
-      method: "POST", // *GET, POST, PUT, DELETE, etc.
-      mode: "cors", // no-cors, *cors, same-origin
-      cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
-      credentials: "same-origin", // include, *same-origin, omit
-      headers: {
-        "Content-Type": "application/json",
-        // 'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      redirect: "follow", // manual, *follow, error
-      referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-      body: JSON.stringify(data), // body data type must match "Content-Type" header
+      method: "POST",
+      body: JSON.stringify(data),
     });
     return response.json(); // parses JSON response into native JavaScript objects
   }
   const getPercentage = (x, y) => {
-    console.log("x,y", x, y);
-
+    // console.log("x,y", x, y);
     return Math.round((x * 100) / y);
   };
-  //eriks data, add column target data
-  //NOTE: use the new post data format
-  const postMock = [
-    ["Partno. Customer", "Description", "Category", "Cuurent Supplier Partno."],
-    ["51.10001", "SKF LAGER 6003", "bearings", "3046760"],
-    ["51.10005", "SKF LAGER 6011", "bearings", "3046838"],
-  ];
 
-  // const responseMock = [
-  //   {
-  //     materialNo: 1,
-  //     materialDescription: "abc",
-  //     matchType: "matched",
-  //   },
-  //   {
-  //     materialNo: 144,
-  //     materialDescription: "abc2",
-  //     matchType: "matched",
-  //   },
-  //   {
-  //     materialNo: 2,
-  //     materialDescription: "def",
-  //     matchType: "fuzzyMatched",
-  //     score: 10,
-  //   },
-  //   {
-  //     materialNo: 1,
-  //     materialDescription: "sdf",
-  //     matchType: "notMatched",
-  //   },
-  // ];
+  // no match, just id
+  // full match, array with one item
+  // fuzzy, array with 1 to many  items
+
   const responseMock = [
     {
       MaterialNoShort: "12345",
@@ -107,13 +73,9 @@ function App() {
       MatchType: "Exact",
     },
   ];
+  // const cleanUpResponse = (x) => x.results;
+  // console.log("mockdata", mockData.map(cleanUpResponse));
 
-  // const transpormResponse = (tableData, responseData) => {
-  //   const final = {};
-  //   final['matched']=tableData.filter(responseData)
-  //   const mergeData = tableData.map(t=>t.push)
-  //   return final;
-  // };
   return (
     <>
       <div className="container">
@@ -161,7 +123,6 @@ function App() {
                         setTransformedRows(products);
                         setColumns(cols);
 
-                        // after API call
                         setMatchedColumns([
                           ...cols,
                           {
@@ -169,48 +130,68 @@ function App() {
                             header: "Eriks",
                           },
                         ]);
+                        // after API call
+
                         const transformObjectToString = (obj) => {
                           return Object.keys(obj)
                             .map((key) => `${key}: ${obj[key]}`)
                             .join(", ");
                         };
+                        const transformArrayOfObjectsToString = (arr) => {
+                          if (typeof arr === "undefined" || arr.length === 0)
+                            return;
+                          return arr
+                            .map((obj) =>
+                              Object.keys(obj)
+                                .map((key) => `${key}: ${obj[key]}`)
+                                .join(", ")
+                            )
+                            .join("\n");
+                        };
+                        console.log("products", products);
 
-                        //for testing only the first 3 items of the table
-                        const matchedDataRows = products
-                          .slice(0, 3)
-                          .map((t, i) => {
+                        postData(API_URL, products).then((data) => {
+                          console.log("results from data matching API", data);
+
+                          const cleanUpResponse = (x) => x.results;
+                          const cleanupData = data.map(cleanUpResponse);
+
+                          console.log("cleanup data", cleanupData);
+
+                          //for testing only the first 3 items of the table
+                          const matchedDataRows = products.map((t, i) => {
                             return {
                               ...t,
-                              Eriks: transformObjectToString(responseMock[i]),
+                              Eriks: transformArrayOfObjectsToString(
+                                data[i].results
+                              ),
                             };
                           });
 
-                        // console.log("matchedDataColumn", matchedDataColumn);
-                        console.log("matchedDataRows", matchedDataRows);
+                          // console.log("matchedDataColumn", matchedDataColumn);
+                          console.log("matchedDataRows", matchedDataRows);
 
-                        const x = matchedDataRows.filter((i) =>
-                          i["Eriks"].includes("MatchType: Exact")
-                        );
-                        setFullyMatchedtransformedRows(x);
+                          const x = matchedDataRows.filter((i) =>
+                            i["Eriks"]?.includes("MatchType: Exact")
+                          );
+                          setFullyMatchedtransformedRows(x);
 
-                        const y = matchedDataRows.filter((i) =>
-                          i["Eriks"].includes("matchType: fuzzyMatched")
-                        );
-                        setFuzzyMatchedtransformedRows(y);
+                          const y = matchedDataRows.filter((i) =>
+                            i["Eriks"]?.includes("MatchType: Fuzzy")
+                          );
+                          setFuzzyMatchedtransformedRows(y);
 
-                        const z = matchedDataRows.filter((i) =>
-                          i["Eriks"].includes("matchType: notMatched")
-                        );
-                        setNotMatchedtransformedRows(z);
+                          const z = matchedDataRows.filter(
+                            (i) => typeof i["Eriks"] === "undefined"
+                          );
+                          setNotMatchedtransformedRows(z);
 
-                        console.log("fullMatchDataRow", x);
-                        console.log("fuzzyMatchDataRow", y);
-                        console.log("notMatchDataRow", z);
+                          console.log("fullMatchDataRow", x);
+                          console.log("fuzzyMatchDataRow", y);
+                          console.log("notMatchDataRow", z);
 
-                        // postData(API_URL, transformedRows).then((data) => {
-                        //   console.log("results from data matching API", data);
-
-                        // });
+                          console.log("transformedRows", transformedRows);
+                        });
                       }
                     }}
                   >
@@ -285,7 +266,7 @@ function App() {
                     <TabPanel
                       header={`Full Match (${getPercentage(
                         fullyMatchedtransformedRows.length,
-                        4
+                        transformedRows.length
                       )}%)`}
                     >
                       {fullyMatchedtransformedRows?.length > 0 && (
@@ -298,7 +279,7 @@ function App() {
                     <TabPanel
                       header={`Fuzzy Match (${getPercentage(
                         fuzzyMatchedtransformedRows.length,
-                        4
+                        transformedRows.length
                       )}%)`}
                     >
                       {fuzzyMatchedtransformedRows?.length > 0 && (
@@ -311,7 +292,7 @@ function App() {
                     <TabPanel
                       header={`No Match (${getPercentage(
                         notMatchedtransformedRows.length,
-                        4
+                        transformedRows.length
                       )}%)`}
                     >
                       {notMatchedtransformedRows?.length > 0 && (
@@ -327,40 +308,6 @@ function App() {
             </StepperPanel>
           </Stepper>
         </div>
-
-        {/* <InputText type="text" placeholder="Integers" />
-        <Dropdown
-          value={selectedCity}
-          onChange={(e) => setSelectedCity(e.value)}
-          options={cities}
-          optionLabel="name"
-          placeholder="Select a City"
-          className="w-full md:w-14rem"
-        />
-        <Button
-          label="Show"
-          icon="pi pi-external-link"
-          onClick={() => setVisible(true)}
-        />
-        <Dialog
-          header="Header"
-          visible={visible}
-          style={{ width: "50vw" }}
-          onHide={() => {
-            if (!visible) return;
-            setVisible(false);
-          }}
-        >
-          <p className="m-0">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-            eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
-            ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-            aliquip ex ea commodo consequat. Duis aute irure dolor in
-            reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-            pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-            culpa qui officia deserunt mollit anim id est laborum.
-          </p>
-        </Dialog> */}
       </div>
     </>
   );

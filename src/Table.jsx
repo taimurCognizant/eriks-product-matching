@@ -2,11 +2,11 @@ import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 
 export default function BasicFilterDemo({ data, columns }) {
-  // console.log("table data", data);
-  // console.log("table columns", columns);
-
+  console.log("table data", data);
+  console.log("table columns", columns);
 
   function parseEriksString(str) {
+    if (typeof str === "undefined") return;
     return str.split(", ").map((pair) => {
       const [key, value] = pair.split(": ");
       return { key, value };
@@ -16,7 +16,7 @@ export default function BasicFilterDemo({ data, columns }) {
     const parsedEriks = parseEriksString(rowData.Eriks);
     return (
       <div>
-        {parsedEriks.map((item, index) => (
+        {parsedEriks?.map((item, index) => (
           <div key={index}>
             <strong>{item.key}:</strong> {item.value}
           </div>
