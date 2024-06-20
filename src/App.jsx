@@ -9,13 +9,111 @@ import { useRef } from "react";
 import { Stepper } from "primereact/stepper";
 import { StepperPanel } from "primereact/stepperpanel";
 import { TabView, TabPanel } from "primereact/tabview";
-
+import { Dropdown } from "primereact/dropdown";
 function App() {
   const { CSVReader } = useCSVReader();
   const stepperRef = useRef(null);
 
-  const [transformedData, setTransformedData] = useState([]);
+  const [transformedRows, setTransformedRows] = useState([]);
   const [columns, setColumns] = useState([]);
+
+  const [fullyMatchedtransformedRows, setFullyMatchedtransformedRows] =
+    useState([]);
+  const [fuzzyMatchedtransformedRows, setFuzzyMatchedtransformedRows] =
+    useState([]);
+  const [notMatchedtransformedRows, setNotMatchedtransformedRows] = useState(
+    []
+  );
+  const [matchedColumns, setMatchedColumns] = useState([]);
+
+  const API_URL =
+    "https://la-er-ed-dev-team4.azurewebsites.net:443/api/DataMatch/triggers/When_a_HTTP_request_is_received/invoke?api-version=2022-05-01&sp=%2Ftriggers%2FWhen_a_HTTP_request_is_received%2Frun&sv=1.0&sig=z1Wnimc6hwJcn4ipnDJGTxsaltt_Z6K7DxrtKpXmAWQ";
+  const catalogList = [
+    { name: "Global", code: "G" },
+    { name: "Netherlands", code: "NL" },
+  ];
+  const [selectedCatalog, setSelectedCatalog] = useState();
+
+  async function postData(url = "", data = {}) {
+    // Default options are marked with *
+    const response = await fetch(url, {
+      method: "POST", // *GET, POST, PUT, DELETE, etc.
+      mode: "cors", // no-cors, *cors, same-origin
+      cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+      credentials: "same-origin", // include, *same-origin, omit
+      headers: {
+        "Content-Type": "application/json",
+        // 'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      redirect: "follow", // manual, *follow, error
+      referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+      body: JSON.stringify(data), // body data type must match "Content-Type" header
+    });
+    return response.json(); // parses JSON response into native JavaScript objects
+  }
+  const getPercentage = (x, y) => {
+    console.log("x,y", x, y);
+
+    return Math.round((x * 100) / y);
+  };
+  //eriks data, add column target data
+  //NOTE: use the new post data format
+  const postMock = [
+    ["Partno. Customer", "Description", "Category", "Cuurent Supplier Partno."],
+    ["51.10001", "SKF LAGER 6003", "bearings", "3046760"],
+    ["51.10005", "SKF LAGER 6011", "bearings", "3046838"],
+  ];
+
+  // const responseMock = [
+  //   {
+  //     materialNo: 1,
+  //     materialDescription: "abc",
+  //     matchType: "matched",
+  //   },
+  //   {
+  //     materialNo: 144,
+  //     materialDescription: "abc2",
+  //     matchType: "matched",
+  //   },
+  //   {
+  //     materialNo: 2,
+  //     materialDescription: "def",
+  //     matchType: "fuzzyMatched",
+  //     score: 10,
+  //   },
+  //   {
+  //     materialNo: 1,
+  //     materialDescription: "sdf",
+  //     matchType: "notMatched",
+  //   },
+  // ];
+  const responseMock = [
+    {
+      MaterialNoShort: "12345",
+      MaterialDescription: "ABCDEF",
+      Score: "100",
+      MatchType: "Exact",
+    },
+    {
+      MaterialNoShort: "12345",
+      MaterialDescription: "ABCDEF",
+      Score: "100",
+      MatchType: "Exact",
+    },
+    {
+      MaterialNoShort: "12345",
+      MaterialDescription: "ABCDEF",
+      Score: "100",
+      MatchType: "Exact",
+    },
+  ];
+
+  // const transpormResponse = (tableData, responseData) => {
+  //   const final = {};
+  //   final['matched']=tableData.filter(responseData)
+  //   const mergeData = tableData.map(t=>t.push)
+  //   return final;
+  // };
   return (
     <>
       <div className="container">
@@ -35,7 +133,7 @@ function App() {
           Product data matching
         </h3>
         <div className="card flex justify-content-center">
-          <Stepper ref={stepperRef} style={{ flexBasis: "50rem" }}>
+          <Stepper ref={stepperRef} style={{ flexBasis: "100%" }}>
             <StepperPanel header="Upload Project">
               <div className="flex flex-column h-12rem">
                 <div className="border-2 border-dashed surface-border border-round surface-ground flex-auto flex justify-content-center align-items-center font-medium">
@@ -60,8 +158,59 @@ function App() {
                           header: header,
                         }));
 
-                        setTransformedData(products);
+                        setTransformedRows(products);
                         setColumns(cols);
+
+                        // after API call
+                        setMatchedColumns([
+                          ...cols,
+                          {
+                            field: "Eriks",
+                            header: "Eriks",
+                          },
+                        ]);
+                        const transformObjectToString = (obj) => {
+                          return Object.keys(obj)
+                            .map((key) => `${key}: ${obj[key]}`)
+                            .join(", ");
+                        };
+
+                        //for testing only the first 3 items of the table
+                        const matchedDataRows = products
+                          .slice(0, 3)
+                          .map((t, i) => {
+                            return {
+                              ...t,
+                              Eriks: transformObjectToString(responseMock[i]),
+                            };
+                          });
+
+                        // console.log("matchedDataColumn", matchedDataColumn);
+                        console.log("matchedDataRows", matchedDataRows);
+
+                        const x = matchedDataRows.filter((i) =>
+                          i["Eriks"].includes("MatchType: Exact")
+                        );
+                        setFullyMatchedtransformedRows(x);
+
+                        const y = matchedDataRows.filter((i) =>
+                          i["Eriks"].includes("matchType: fuzzyMatched")
+                        );
+                        setFuzzyMatchedtransformedRows(y);
+
+                        const z = matchedDataRows.filter((i) =>
+                          i["Eriks"].includes("matchType: notMatched")
+                        );
+                        setNotMatchedtransformedRows(z);
+
+                        console.log("fullMatchDataRow", x);
+                        console.log("fuzzyMatchDataRow", y);
+                        console.log("notMatchDataRow", z);
+
+                        // postData(API_URL, transformedRows).then((data) => {
+                        //   console.log("results from data matching API", data);
+
+                        // });
                       }
                     }}
                   >
@@ -99,19 +248,20 @@ function App() {
                   icon="pi pi-arrow-right"
                   iconPos="right"
                   onClick={() => stepperRef.current.nextCallback()}
-                  disabled={transformedData.length === 0}
+                  disabled={transformedRows.length === 0}
                 />
               </div>
             </StepperPanel>
             <StepperPanel header="Project Data">
-              <div className="flex flex-column">
-                <div className="border-2 border-dashed surface-border border-round surface-ground flex-auto flex justify-content-center align-items-center font-medium">
-                  {transformedData?.length > 0 && (
-                    <BasicFilterDemo data={transformedData} columns={columns} />
-                  )}
-                </div>
-              </div>
-              <div className="flex pt-4 justify-content-end">
+              <div className="flex pb-4 justify-content-between ">
+                <Dropdown
+                  value={selectedCatalog}
+                  onChange={(e) => setSelectedCatalog(e.value)}
+                  options={catalogList}
+                  optionLabel="name"
+                  placeholder="Select a Catalog"
+                  className="w-full md:w-14rem "
+                />{" "}
                 <Button
                   label="Next"
                   icon="pi pi-arrow-right"
@@ -119,48 +269,57 @@ function App() {
                   onClick={() => stepperRef.current.nextCallback()}
                 />
               </div>
+              <div></div>
+              <div className="flex flex-column">
+                <div className="border-2 border-dashed surface-border border-round surface-ground justify-content-center align-items-center font-medium">
+                  {transformedRows?.length > 0 && (
+                    <BasicFilterDemo data={transformedRows} columns={columns} />
+                  )}
+                </div>
+              </div>
             </StepperPanel>
             <StepperPanel header="Matching">
               <div className="flex flex-column h-12rem">
-                <div className="border-2 border-dashed surface-border border-round surface-ground flex-auto flex justify-content-center align-items-center font-medium">
+                <div className="border-2 border-dashed surface-border border-round surface-ground justify-content-center align-items-center font-medium p-0">
                   <TabView>
-                    <TabPanel header="Full Match (20%)">
-                      <p className="m-0">
-                        Lorem ipsum dolor sit amet, consectetur adipiscing elit,
-                        sed do eiusmod tempor incididunt ut labore et dolore
-                        magna aliqua. Ut enim ad minim veniam, quis nostrud
-                        exercitation ullamco laboris nisi ut aliquip ex ea
-                        commodo consequat. Duis aute irure dolor in
-                        reprehenderit in voluptate velit esse cillum dolore eu
-                        fugiat nulla pariatur. Excepteur sint occaecat cupidatat
-                        non proident, sunt in culpa qui officia deserunt mollit
-                        anim id est laborum.
-                      </p>
+                    <TabPanel
+                      header={`Full Match (${getPercentage(
+                        fullyMatchedtransformedRows.length,
+                        4
+                      )}%)`}
+                    >
+                      {fullyMatchedtransformedRows?.length > 0 && (
+                        <BasicFilterDemo
+                          data={fullyMatchedtransformedRows}
+                          columns={matchedColumns}
+                        />
+                      )}
                     </TabPanel>
-                    <TabPanel header="Fuzzy Match (20%)">
-                      <p className="m-0">
-                        Sed ut perspiciatis unde omnis iste natus error sit
-                        voluptatem accusantium doloremque laudantium, totam rem
-                        aperiam, eaque ipsa quae ab illo inventore veritatis et
-                        quasi architecto beatae vitae dicta sunt explicabo. Nemo
-                        enim ipsam voluptatem quia voluptas sit aspernatur aut
-                        odit aut fugit, sed quia consequuntur magni dolores eos
-                        qui ratione voluptatem sequi nesciunt. Consectetur,
-                        adipisci velit, sed quia non numquam eius modi.
-                      </p>
+                    <TabPanel
+                      header={`Fuzzy Match (${getPercentage(
+                        fuzzyMatchedtransformedRows.length,
+                        4
+                      )}%)`}
+                    >
+                      {fuzzyMatchedtransformedRows?.length > 0 && (
+                        <BasicFilterDemo
+                          data={fuzzyMatchedtransformedRows}
+                          columns={matchedColumns}
+                        />
+                      )}
                     </TabPanel>
-                    <TabPanel header="Unmatched (60%)">
-                      <p className="m-0">
-                        At vero eos et accusamus et iusto odio dignissimos
-                        ducimus qui blanditiis praesentium voluptatum deleniti
-                        atque corrupti quos dolores et quas molestias excepturi
-                        sint occaecati cupiditate non provident, similique sunt
-                        in culpa qui officia deserunt mollitia animi, id est
-                        laborum et dolorum fuga. Et harum quidem rerum facilis
-                        est et expedita distinctio. Nam libero tempore, cum
-                        soluta nobis est eligendi optio cumque nihil impedit quo
-                        minus.
-                      </p>
+                    <TabPanel
+                      header={`No Match (${getPercentage(
+                        notMatchedtransformedRows.length,
+                        4
+                      )}%)`}
+                    >
+                      {notMatchedtransformedRows?.length > 0 && (
+                        <BasicFilterDemo
+                          data={notMatchedtransformedRows}
+                          columns={matchedColumns}
+                        />
+                      )}
                     </TabPanel>
                   </TabView>
                 </div>
