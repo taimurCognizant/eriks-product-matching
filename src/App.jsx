@@ -268,7 +268,9 @@ function App() {
               <div className="flex flex-column h-12rem">
                 <div className="border-2 border-dashed surface-border border-round surface-ground justify-content-center align-items-center font-medium p-0">
                   {isLoading ? (
-                    <ProgressSpinner />
+                    <div className="flex justify-content-center pt-4 pb-4">
+                      <ProgressSpinner />
+                    </div>
                   ) : (
                     <TabView>
                       <TabPanel
