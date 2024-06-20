@@ -10,8 +10,12 @@ import { Stepper } from "primereact/stepper";
 import { StepperPanel } from "primereact/stepperpanel";
 import { TabView, TabPanel } from "primereact/tabview";
 import { Dropdown } from "primereact/dropdown";
-import mockData from "./data";
+import { ProgressBar } from "primereact/progressbar";
+import { ProgressSpinner } from "primereact/progressspinner";
+// import mockData from "./data";
+
 function App() {
+  const [isLoading, setIsLoading] = useState(false);
   const { CSVReader } = useCSVReader();
   const stepperRef = useRef(null);
 
@@ -149,7 +153,7 @@ function App() {
                             .join("\n");
                         };
                         console.log("products", products);
-
+                        setIsLoading(true);
                         postData(API_URL, products).then((data) => {
                           console.log("results from data matching API", data);
 
@@ -191,6 +195,7 @@ function App() {
                           console.log("notMatchDataRow", z);
 
                           console.log("transformedRows", transformedRows);
+                          setIsLoading(false);
                         });
                       }
                     }}
@@ -262,47 +267,51 @@ function App() {
             <StepperPanel header="Matching">
               <div className="flex flex-column h-12rem">
                 <div className="border-2 border-dashed surface-border border-round surface-ground justify-content-center align-items-center font-medium p-0">
-                  <TabView>
-                    <TabPanel
-                      header={`Full Match (${getPercentage(
-                        fullyMatchedtransformedRows.length,
-                        transformedRows.length
-                      )}%)`}
-                    >
-                      {fullyMatchedtransformedRows?.length > 0 && (
-                        <BasicFilterDemo
-                          data={fullyMatchedtransformedRows}
-                          columns={matchedColumns}
-                        />
-                      )}
-                    </TabPanel>
-                    <TabPanel
-                      header={`Fuzzy Match (${getPercentage(
-                        fuzzyMatchedtransformedRows.length,
-                        transformedRows.length
-                      )}%)`}
-                    >
-                      {fuzzyMatchedtransformedRows?.length > 0 && (
-                        <BasicFilterDemo
-                          data={fuzzyMatchedtransformedRows}
-                          columns={matchedColumns}
-                        />
-                      )}
-                    </TabPanel>
-                    <TabPanel
-                      header={`No Match (${getPercentage(
-                        notMatchedtransformedRows.length,
-                        transformedRows.length
-                      )}%)`}
-                    >
-                      {notMatchedtransformedRows?.length > 0 && (
-                        <BasicFilterDemo
-                          data={notMatchedtransformedRows}
-                          columns={matchedColumns}
-                        />
-                      )}
-                    </TabPanel>
-                  </TabView>
+                  {isLoading ? (
+                    <ProgressSpinner />
+                  ) : (
+                    <TabView>
+                      <TabPanel
+                        header={`Full Match (${getPercentage(
+                          fullyMatchedtransformedRows.length,
+                          transformedRows.length
+                        )}%)`}
+                      >
+                        {fullyMatchedtransformedRows?.length > 0 && (
+                          <BasicFilterDemo
+                            data={fullyMatchedtransformedRows}
+                            columns={matchedColumns}
+                          />
+                        )}
+                      </TabPanel>
+                      <TabPanel
+                        header={`Fuzzy Match (${getPercentage(
+                          fuzzyMatchedtransformedRows.length,
+                          transformedRows.length
+                        )}%)`}
+                      >
+                        {fuzzyMatchedtransformedRows?.length > 0 && (
+                          <BasicFilterDemo
+                            data={fuzzyMatchedtransformedRows}
+                            columns={matchedColumns}
+                          />
+                        )}
+                      </TabPanel>
+                      <TabPanel
+                        header={`No Match (${getPercentage(
+                          notMatchedtransformedRows.length,
+                          transformedRows.length
+                        )}%)`}
+                      >
+                        {notMatchedtransformedRows?.length > 0 && (
+                          <BasicFilterDemo
+                            data={notMatchedtransformedRows}
+                            columns={matchedColumns}
+                          />
+                        )}
+                      </TabPanel>
+                    </TabView>
+                  )}
                 </div>
               </div>
             </StepperPanel>
